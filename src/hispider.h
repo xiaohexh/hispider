@@ -5,6 +5,7 @@
 using std::string;
 
 #include "hs_log.h"
+#include "hs_config.h"
 
 #define CRLF        "\x0d\x0a"
 

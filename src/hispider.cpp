@@ -140,6 +140,16 @@ int init(struct instance *hsi)
     	return HS_ERROR;
    	}
 
+  	HSConfig *hs_config = HSConfig::instance();
+  	status = hs_config->loadConfigFile(hsi->conf_file.c_str());
+  	if (status < 0) {
+    	log_error("load config file '%s' failed\n", hsi->conf_file.c_str());
+      	return HS_ERROR;
+  	}
+
+  	int level = hs_config->getConfigInt("log", "level");
+    log_debug(LOG_DEBUG, "log level is %d", level);
+
 	return HS_OK;
 }
 
