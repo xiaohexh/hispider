@@ -30,7 +30,7 @@ static struct option long_options[] = {
 static const char *short_options = "hvdc:l:p:";
 
 
-int get_options(int argc, char **argv)
+int get_options(int argc, char **argv, struct instance *hsi)
 {
     int c;
 
@@ -55,15 +55,15 @@ int get_options(int argc, char **argv)
             break;
 
         case 'c':
-            //cfg_file = optarg;
+            hsi->conf_file = optarg;
             break;
 
         case 'l':
-            //log_file = optarg;
+            hsi->log_file = optarg;
             break;
 
         case 'p':
-            //pid_file = optarg;
+            hsi->pid_file = optarg;
             break;
 
         default:
@@ -126,13 +126,21 @@ void set_default_options(struct instance *hsi)
 {
     hsi->conf_file = DEF_CFG_FILE;
     hsi->log_file = DEF_LOG_FILE;
-    //hsi->log_level = LOG_ERR;
+    hsi->log_level = LOG_ERR;
     hsi->pid_file = DEF_PID_FILE;
 }
 
-int init()
+int init(struct instance *hsi)
 {
-  return HS_OK;
+	int status;
+
+   	status = log_init(LOG_DEBUG, hsi->log_file);
+   	if (status < 0) {
+       	log_stderr("log_init failed");
+    	return HS_ERROR;
+   	}
+
+	return HS_OK;
 }
 
 int main(int argc, char **argv) {
@@ -144,7 +152,7 @@ int main(int argc, char **argv) {
 
   set_default_options(&hsi);
 
-  status = get_options(argc, argv);
+  status = get_options(argc, argv, &hsi);
   if (status < 0) {
       fprintf(stderr, "parse common line params failed!\n");
 	  exit(0);
@@ -160,7 +168,7 @@ int main(int argc, char **argv) {
 
   if (daemonize) hs_daemonize();
 
-  status = init();
+  status = init(&hsi);
   if (status != HS_OK) {
 	  return 1;
   }

@@ -4,6 +4,8 @@
 #include <string>
 using std::string;
 
+#include "hs_log.h"
+
 #define CRLF        "\x0d\x0a"
 
 #define DEF_LOG_FILE    "../logs/hispider.log"

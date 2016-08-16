@@ -7,7 +7,8 @@ CFLAGS = -g -Wall -O2 -pipe -fno-ident -MMD -D_GNU_SOURCE -D_REENTRANT -Wno-depr
 #CFLAGS = -g -Wall -pipe -fno-ident -MMD -D_GNU_SOURCE -D_REENTRANT -Wno-deprecated
 CXXFLAGS += $(CFLAGS)
 
-OBJ = hispider.o
+OBJ = hispider.o	\
+	  hs_log.o
 
 TARGET = hispider 
 
