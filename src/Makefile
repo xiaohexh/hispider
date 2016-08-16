@@ -9,7 +9,8 @@ CXXFLAGS += $(CFLAGS)
 
 OBJ = hispider.o	\
 	  hs_log.o		\
-	  hs_config.o
+	  hs_config.o	\
+	  hs_signal.o
 
 TARGET = hispider 
 

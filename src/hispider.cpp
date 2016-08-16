@@ -13,6 +13,8 @@
 
 #include "hispider.h"
 
+using std::cout;
+
 static int show_help;
 static int show_version;
 static int daemonize;
@@ -28,7 +30,6 @@ static struct option long_options[] = {
 };
 
 static const char *short_options = "hvdc:l:p:";
-
 
 int get_options(int argc, char **argv, struct instance *hsi)
 {
@@ -68,7 +69,7 @@ int get_options(int argc, char **argv, struct instance *hsi)
 
         default:
             // errlog
-            printf("invalid option '%c'\n", c);
+            cout << "invalid option " << "'" << c << "'\n";
             return -1;
         }
     }
@@ -149,6 +150,8 @@ int init(struct instance *hsi)
 
   	int level = hs_config->getConfigInt("log", "level");
     log_debug(LOG_DEBUG, "log level is %d", level);
+
+	signal_init();
 
 	return HS_OK;
 }
