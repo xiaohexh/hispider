@@ -12,12 +12,16 @@
 #include <error.h>
 
 #include "hispider.h"
+#include "hs_urlparser.h"
 
 using std::cout;
+using std::endl;
 
 static int show_help;
 static int show_version;
 static int daemonize;
+
+struct instance *hsi;
 
 static struct option long_options[] = { 
     { "help",       no_argument,    NULL,   'h' },
@@ -131,7 +135,7 @@ void set_default_options(struct instance *hsi)
     hsi->pid_file = DEF_PID_FILE;
 }
 
-int init(struct instance *hsi)
+int hs_init(struct instance *hsi)
 {
 	int status;
 
@@ -149,11 +153,27 @@ int init(struct instance *hsi)
   	}
 
   	int level = hs_config->getConfigInt("log", "level");
-    log_debug(LOG_DEBUG, "log level is %d", level);
 
 	signal_init();
 
+	hsi->stop = 0;
+
 	return HS_OK;
+}
+
+void hs_loop()
+{
+  cout << "hs loop" << endl;
+  while (!hsi->stop) {
+
+	  sleep(1);
+  }
+}
+
+void hs_stop(void)
+{
+	cout << "set hsi->stop to 1" << endl;
+	hsi->stop = 1;	
 }
 
 int main(int argc, char **argv) {
@@ -161,11 +181,14 @@ int main(int argc, char **argv) {
   int port = 9090;
   int status;
 
-  struct instance hsi;
+  hsi = new instance();
+  if (hsi == NULL) {
+	  return 1;
+  }
 
-  set_default_options(&hsi);
+  set_default_options(hsi);
 
-  status = get_options(argc, argv, &hsi);
+  status = get_options(argc, argv, hsi);
   if (status < 0) {
       fprintf(stderr, "parse common line params failed!\n");
 	  exit(0);
@@ -181,12 +204,25 @@ int main(int argc, char **argv) {
 
   if (daemonize) hs_daemonize();
 
-  status = init(&hsi);
+  status = hs_init(hsi);
   if (status != HS_OK) {
 	  return 1;
   }
 
-  if (daemonize) create_pid_file(&hsi);
+  if (daemonize) create_pid_file(hsi);
+
+  cout << "beg create parse thread" << endl;
+	
+  /* create thread used to parse url */
+  status = hs_thread_create(&hsi->url_tid, parse_loop, (void *)hsi);
+  if (status < 0) {
+  	  cout << "create parse thread failed" << endl;
+	  return 1;
+  }
+
+  cout << UrlParser::instance()->get_ip("www.baidu.com") << endl;
+
+  hs_loop();
 
   return 0;
 }

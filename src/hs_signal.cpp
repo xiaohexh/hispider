@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <errno.h>
 
+#include "hispider.h"
 #include "hs_signal.h"
 
 static struct signal signals[] = {
@@ -69,6 +70,7 @@ void signal_handler(int signo)
     case SIGTERM:
         done = true;
         actionstr = ", exiting";
+		action = hs_stop;
         break;
 
     case SIGSEGV:

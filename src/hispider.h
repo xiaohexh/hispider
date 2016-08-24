@@ -7,6 +7,7 @@ using std::string;
 #include "hs_log.h"
 #include "hs_config.h"
 #include "hs_signal.h"
+#include "hs_thread.h"
 
 #define CRLF        "\x0d\x0a"
 
@@ -22,6 +23,10 @@ struct instance {
 	string log_file;
 	int    log_level;
 	string pid_file;
+	pthread_t url_tid;
+	int		stop;
 };
+
+void hs_stop(void);
 
 #endif
