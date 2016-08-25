@@ -6,13 +6,14 @@
 #include <unistd.h>
 #include <string.h>
 #include <getopt.h>
+#include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <arpa/inet.h>
 #include <fcntl.h>
-#include <error.h>
+#include <errno.h>
 
 #include "hispider.h"
-#include "hs_urlparser.h"
 
 using std::cout;
 using std::endl;
@@ -74,7 +75,7 @@ int get_options(int argc, char **argv, struct instance *hsi)
         default:
             // errlog
             cout << "invalid option " << "'" << c << "'\n";
-            return -1;
+            return HS_ERROR;
         }
     }
 
@@ -97,7 +98,7 @@ void hs_daemonize(void)
     }
 }
 
-void create_pid_file(struct instance *hsi) {
+void create_pid_file() {
   FILE *fp = fopen(hsi->pid_file.c_str(), "w");
   if (fp) {
     fprintf(fp,"%d\n",(int)getpid());
@@ -135,9 +136,57 @@ void set_default_options(struct instance *hsi)
     hsi->pid_file = DEF_PID_FILE;
 }
 
-int hs_init(struct instance *hsi)
+int listen_to_port()
+{
+    int status;
+
+    struct sockaddr_in servaddr;
+
+    hsi->listenfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (hsi->listenfd < 0) {
+        log_error("socket failed: %s\n", strerror(errno));
+        return HS_ERROR;
+    }
+
+    status = set_reuseaddr(hsi->listenfd);
+    if (status < 0) {
+        log_error("reuseaddr failed: %s\n", strerror(errno));
+        return HS_ERROR;
+    }
+
+    bzero(&servaddr, sizeof(servaddr));
+
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    servaddr.sin_port = htons(PORT);
+
+    status = bind(hsi->listenfd, (struct sockaddr *)&servaddr, sizeof(servaddr));
+    if (status < 0) {
+        log_error("bind failed: %s\n", strerror(errno));
+        return HS_ERROR;
+    }
+
+    status = listen(hsi->listenfd, BACKLOG);
+    if (status < 0) {
+        log_error("listen failed: %s\n", strerror(errno));
+        return HS_ERROR;
+    }
+
+    status = set_nonblocking(hsi->listenfd);
+    if (status < 0) {
+        log_error("set nonblocking failed: %s\n", strerror(errno));
+        return HS_ERROR;
+    }
+
+    return HS_OK;
+}
+
+int hs_init()
 {
 	int status;
+
+    signal(SIGHUP, SIG_IGN);
+    signal(SIGPIPE, SIG_IGN);
 
    	status = log_init(LOG_DEBUG, hsi->log_file);
    	if (status < 0) {
@@ -158,22 +207,20 @@ int hs_init(struct instance *hsi)
 
 	hsi->stop = 0;
 
-	return HS_OK;
-}
+    hsi->el = aeCreateEventLoop(1024);
 
-void hs_loop()
-{
-  cout << "hs loop" << endl;
-  while (!hsi->stop) {
+    listen_to_port();
 
-	  sleep(1);
-  }
+    status = aeCreateFileEvent(hsi->el, hsi->listenfd, AE_READABLE, accept_conn_from_client, NULL);
+
+    return status;
 }
 
 void hs_stop(void)
 {
 	cout << "set hsi->stop to 1" << endl;
-	hsi->stop = 1;	
+	hsi->stop = 1;
+	aeStop(hsi->el);
 }
 
 int main(int argc, char **argv) {
@@ -204,12 +251,12 @@ int main(int argc, char **argv) {
 
   if (daemonize) hs_daemonize();
 
-  status = hs_init(hsi);
+  status = hs_init();
   if (status != HS_OK) {
 	  return 1;
   }
 
-  if (daemonize) create_pid_file(hsi);
+  if (daemonize) create_pid_file();
 
   cout << "beg create parse thread" << endl;
 	
@@ -220,9 +267,9 @@ int main(int argc, char **argv) {
 	  return 1;
   }
 
-  cout << UrlParser::instance()->get_ip("www.baidu.com") << endl;
+  aeMain(hsi->el);
 
-  hs_loop();
+  aeDeleteEventLoop(hsi->el);
 
   return 0;
 }

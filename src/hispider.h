@@ -8,6 +8,10 @@ using std::string;
 #include "hs_config.h"
 #include "hs_signal.h"
 #include "hs_thread.h"
+#include "hs_event.h"
+#include "hs_net.h"
+#include "hs_urlparser.h"
+#include "hs_urlquery.h"
 
 #define CRLF        "\x0d\x0a"
 
@@ -17,6 +21,10 @@ using std::string;
 
 #define HS_OK       0
 #define HS_ERROR    -1
+#define HS_NEXIST	100
+
+#define PORT    10001
+#define BACKLOG	1024
 
 struct instance {
 	string conf_file;
@@ -25,6 +33,9 @@ struct instance {
 	string pid_file;
 	pthread_t url_tid;
 	int		stop;
+
+    aeEventLoop *el;
+    int listenfd;
 };
 
 void hs_stop(void);

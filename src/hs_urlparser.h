@@ -40,7 +40,7 @@ public:
 
 	void add2map(const string& domain, const string& ip);
 
-	const std::string &get_ip(const string&);
+	int get_ip(const string &url, string &ip);
 
 private:
 

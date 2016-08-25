@@ -12,6 +12,9 @@ OBJ = hispider.o	\
 	  hs_config.o	\
 	  hs_signal.o	\
 	  hs_thread.o	\
+	  hs_event.o	\
+	  hs_net.o		\
+	  hs_urlquery.o	\
 	  hs_urlparser.o
 
 TARGET = hispider 

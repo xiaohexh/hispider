@@ -10,12 +10,7 @@
 #include <event2/util.h>
 #include <event2/event.h>
 
-#include <iostream>
-using std::cout;
-using std::endl;
-
 #include "hispider.h"
-#include "hs_urlparser.h"
 
 UrlParser::UrlParser()
 {
@@ -42,10 +37,10 @@ static void dns_callback(int result, char type,
     struct in_addr *addrs = (in_addr *)addresses;
 
     if (result != 0 || count == 0) {
-        printf("Dns resolve fail: %s", o_url->domain.c_str());
+        log_error("Dns resolve fail: %s", o_url->domain.c_str());
     } else {
         char * ip = inet_ntoa(addrs[0]);
-        printf("Dns resolve OK: %s -> %s\n", o_url->domain.c_str(), ip);
+        log_debug(LOG_DEBUG, "Dns resolve OK: %s -> %s\n", o_url->domain.c_str(), ip);
 		UrlParser::instance()->add2map(o_url->domain, ip);
     }
     event_loopexit(NULL); // not safe for multithreads
@@ -60,8 +55,6 @@ void *UrlParser::url_parse(void *arg)
 {
     surl *s_url = NULL;
     ourl *o_url = NULL;
-
-	cout << "enter UrlParser::url_parse" << endl;
 
     pthread_mutex_lock(&m_lock);
     while (surl_q.empty()) {
@@ -122,9 +115,14 @@ ourl *UrlParser::surl2ourl(surl *s_url)
     return o_url;
 }
 
-const string &UrlParser::get_ip(const string& url)
+int UrlParser::get_ip(const string& url, string &ip)
 {
-	/*
+	//host_ip_m["www.baidu.com"] = "115.239.211.112";
+	if (host_ip_m.find(url) != host_ip_m.end()) {
+		ip = host_ip_m[url];
+    	return HS_OK;
+	}
+
     pthread_mutex_lock(&m_lock);
 
 	surl *s_url = new surl();
@@ -133,17 +131,12 @@ const string &UrlParser::get_ip(const string& url)
     pthread_cond_signal(&m_cond);
 
     pthread_mutex_unlock(&m_lock);
-	*/
-	host_ip_m["www.baidu.com"] = "115.239.211.112";
-	if (host_ip_m.find(url) != host_ip_m.end()) {
-    	return host_ip_m[url];
-	}
-	return string("");
+
+	return HS_NEXIST;
 }
 
 void *parse_loop(void *arg)
 {
-	cout << "parse thread begin loop" << endl;
 	struct instance *hsi = (struct instance *)arg;
 	while (!hsi->stop) {
 		UrlParser::instance()->url_parse(NULL);
